@@ -2,6 +2,8 @@
 
 This repo simply automates the installation of Postfix and Dovecot on an Openstack instance. The terraform will create an instance. Then it will point the NS names and create MX record in Name.com to the newly created instance's public IP.
 
+### Terraform and Name.com
+
 Simply edit the `variables.tf` and run:
 
 ```bash
