@@ -1,0 +1,6 @@
+---
+
+mail_fqdn: example.com
+mailname: mail.example.com
+mail_hostname: example.com
+test_mail_address: example@example.com

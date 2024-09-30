@@ -1,0 +1,13 @@
+---
+
+- name: Restart Postfix
+  systemd:
+    name: postfix
+    state: restarted
+    enabled: yes
+
+- name: Restart Dovecot
+  systemd:
+    name: dovecot
+    state: restarted
+    enabled: yes

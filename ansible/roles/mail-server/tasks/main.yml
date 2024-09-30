@@ -1,0 +1,101 @@
+---
+
+- name: apt upgrade
+  apt:
+    upgrade: yes
+    update_cache: yes
+
+- name: Set server FQDN
+  hostname:
+    name: "{{ mail_fqdn }}"
+
+- name: Copy SSL certs
+  copy:
+    src: "{{ item }}"
+    dest: /etc/ssl/certs/
+  with_items:
+    - mail_cert.crt
+    - mail_private.key
+
+- name: Install Postfix
+  apt:
+    name: postfix
+    state: present
+
+- name: Copy postfix conf file
+  template:
+    src: postfix-conf.cnf
+    dest: /etc/postfix/main.cf
+  notify:
+    - Restart Postfix
+
+- name: Copy postfix master conf file
+  template:
+    src: postfix-master.cnf
+    dest: /etc/postfix/master.cf
+  notify:
+    - Restart Postfix
+
+- name: Set mailname
+  template:
+    src: mailname
+    dest: /etc/mailname
+
+- name: Set aliases
+  template:
+    src: aliases
+    dest: /etc/aliases
+
+- name: Rebuild aliases
+  shell: newaliases
+
+- name: Install Dovecot
+  package:
+    name:
+      - dovecot-core
+      - dovecot-imapd
+    state: present
+  notify:
+    - Restart Dovecot
+
+- name: Set IMAP protocol as second line of conf file
+  lineinfile:
+    path: /etc/dovecot/dovecot.conf
+    line: "protocols = imap"
+    insertafter: "^"
+    firstmatch: yes
+  notify:
+    - Restart Dovecot
+
+- name: Configure dovecot conf files
+  template:
+    src: "{{ item }}"
+    dest: /etc/dovecot/conf.d/
+  with_items:
+    - 10-auth.conf
+    - 10-ssl.conf
+    - 10-master.conf
+  notify:
+    - Restart Dovecot
+
+- name: clean cache directory
+  apt:
+    clean: yes
+
+- name: Send a test mail
+  shell: echo "Ansible done :)" | sendmail {{ test_mail_address }}
+
+- name: Deploy monitoring script
+  copy:
+    src: mail_monitor.sh
+    dest: /opt/mail_monitor.sh
+
+- name: Set the mail monitor script in cron
+  cron:
+    cron_file: "/etc/cron.d/mail_checker"
+    user: root
+    name: "Mail monitor script"
+    minute: "*"
+    hour: "*"
+    job: "bash /opt/mail_monitor.sh >> /var/log/mail_monitor.log 2>&1"
+    state: present
